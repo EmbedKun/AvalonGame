@@ -80,12 +80,6 @@ def get_avalon_evaluator():
     return _create_evaluator(EvalAvalonWorkflow, "avalon")
 
 
-@register_game("diplomacy")
-def get_diplomacy_evaluator():
-    """Get Diplomacy evaluator (lazy-loaded)."""
-    from games.games.diplomacy.workflows.eval_workflow import EvalDiplomacyWorkflow
-    return _create_evaluator(EvalDiplomacyWorkflow, "diplomacy")
-
 
 def display_results(aggregated: Dict[str, Any], game_name: str = "Game", num_games: int = None):
     """Display aggregated statistics in a formatted table layout."""

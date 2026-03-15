@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Unified web agents for Avalon + Diplomacy."""
+"""Unified web agents for Avalon + Turtle Soup."""
 from typing import Any
 from agentscope.agent import AgentBase, UserAgent
 from agentscope.message import Msg

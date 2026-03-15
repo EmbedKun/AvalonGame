@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Unified web server for Avalon + Diplomacy."""
+"""Unified web server for Avalon + Turtle Soup."""
 import asyncio
 import json
 import uuid
@@ -182,32 +182,11 @@ async def send_personal_message(player_id: int, message: dict):
         print(f"--- [Server] Recording Pending Request for Player {player_id}")
         PENDING_INPUT_REQUESTS[player_id] = message
         
-    # 2. [FIX] 智能存储逻辑
+    # 2. [FIX] 存储逻辑：私信始终标记归属者，不做去重提升
     if message.get("type") == "message":
-        should_store = True
-        
-        # 检查是否是重复消息（广播检测）
-        if len(GAME_CHAT_HISTORY) > 0:
-            last_msg = GAME_CHAT_HISTORY[-1]
-            # 如果内容和发送者都一样，说明这是同一条消息发给了下一个人
-            if (last_msg.get("content") == message.get("content") and 
-                last_msg.get("sender") == message.get("sender")):
-                
-                # [核心修复] 既然发给了第二个人，说明它是公开消息！
-                # 撕掉上一条消息的“私有标签”，让所有人可见
-                if "_private_to" in last_msg:
-                    # print(f"--- [Server] Promoting message to PUBLIC: {message.get('content')[:10]}...")
-                    del last_msg["_private_to"]
-                
-                # 既然上一条已经变成公开的了，这一条就不用再存了
-                should_store = False
-        
-        if should_store:
-            # 默认先当成私有消息存起来，标记归属者
-            # 如果后面发现还有人收到这条消息，上面的逻辑会把它变成公开
-            msg_to_store = message.copy()
-            msg_to_store["_private_to"] = player_id 
-            GAME_CHAT_HISTORY.append(msg_to_store)
+        msg_to_store = message.copy()
+        msg_to_store["_private_to"] = player_id
+        GAME_CHAT_HISTORY.append(msg_to_store)
 
     # 3. 发送消息 (保持不变)
     conn_id = state_manager.player_connections.get(player_id)
@@ -309,14 +288,15 @@ class LobbyManager:
                     await start_game_implementation(req, lobby_snapshot)
                     
                     # Redirect Players
+                    game_name = req.game
                     all_ids = set(range(req.num_players))
                     ai_ids_set = set(ai_ids)
                     available_human_ids = sorted(list(all_ids - ai_ids_set))
-                    
+
                     for i, p in enumerate(self.active_players):
                         if i < len(available_human_ids):
                             assigned_id = available_human_ids[i]
-                            url = f"/avalon/participate?uid={assigned_id}"
+                            url = f"/{game_name}/participate?uid={assigned_id}"
                             await p['ws'].send_json({
                                 "type": "GAME_START",
                                 "url": url,
@@ -325,7 +305,7 @@ class LobbyManager:
                         else:
                             await p['ws'].send_json({
                                 "type": "GAME_START",
-                                "url": "/avalon/observe",
+                                "url": f"/{game_name}/observe",
                                 "player_id": -1
                             })
                             
@@ -388,13 +368,13 @@ async def avalon_observe_page():
 async def avalon_participate_page():
     return _page("avalon/participate.html")
 
-@app.get("/diplomacy/observe")
-async def dip_observe_page():
-    return _page("diplomacy/observe.html")
+@app.get("/turtle_soup/observe")
+async def turtle_soup_observe_page():
+    return _page("turtle_soup/observe.html")
 
-@app.get("/diplomacy/participate")
-async def dip_participate_page():
-    return _page("diplomacy/participate.html")
+@app.get("/turtle_soup/participate")
+async def turtle_soup_participate_page():
+    return _page("turtle_soup/participate.html")
 
 
 # --- WEBSOCKET HANDLERS ---
@@ -449,7 +429,7 @@ async def _handle_game_websocket(websocket: WebSocket, uid: Optional[int] = None
         })
         
         # [NEW] 核心修复：发送历史聊天记录
-        # [FIX] 发送历史记录 - 强制使用“逐条发送”模式
+        # [FIX] 发送历史记录 - 强制使用"逐条发送"模式
         # 这种方式兼容性最好，前端不需要任何改动就能显示
         if len(GAME_CHAT_HISTORY) > 0:
             print(f"--- [Recover] Filtering & Sending history to Player {uid}")
@@ -479,7 +459,7 @@ async def _handle_game_websocket(websocket: WebSocket, uid: Optional[int] = None
                 
                 await _safe_send_json(websocket, msg_to_send)
 
-        # [NEW] 核心修复：检查是否有“未完成的输入请求”并重发
+        # [NEW] 核心修复：检查是否有"未完成的输入请求"并重发
         if uid is not None and uid in PENDING_INPUT_REQUESTS:
             print(f"--- [Recover] Resending pending input request to Player {uid}")
             pending_msg = PENDING_INPUT_REQUESTS[uid]
@@ -495,7 +475,7 @@ async def _handle_game_websocket(websocket: WebSocket, uid: Optional[int] = None
                     agent_id = message.get("agent_id")
                     content = message.get("content", "")
                     
-                    # [NEW] 核心修复：收到用户输入后，清除由于该请求产生的“欠账”
+                    # [NEW] 核心修复：收到用户输入后，清除由于该请求产生的"欠账"
                     # 只有当发送者是该用户时才清除
                     if uid is not None and int(agent_id) == int(uid):
                         if uid in PENDING_INPUT_REQUESTS:
@@ -580,7 +560,7 @@ async def start_game_implementation(request: StartGameRequest, lobby_players: Li
     if real_human_count > total_slots:
         real_human_count = total_slots
 
-    # 2. 准备两个“头像队列”
+    # 2. 准备两个"头像队列"
     # 队列 A: 真人头像 (从 Lobby 数据获取)
     human_avatars_queue = []
     if lobby_players:
@@ -592,7 +572,7 @@ async def start_game_implementation(request: StartGameRequest, lobby_players: Li
         human_avatars_queue.append(first_portrait)
 
     # 队列 B: AI 头像 (从 Host 选择的 ai_ids 获取)
-    # 注意：前端发来的 request.ai_ids 实际上是 Host 选中的那些“头像ID” (例如 [7, 8, 9])
+    # 注意：前端发来的 request.ai_ids 实际上是 Host 选中的那些"头像ID" (例如 [7, 8, 9])
     ai_avatars_queue = request.ai_ids if request.ai_ids else []
     
     # 3. 开始分配座位 (0 到 N-1)
@@ -600,7 +580,7 @@ async def start_game_implementation(request: StartGameRequest, lobby_players: Li
     players_meta = []
     
     # 我们不仅要收集 ID，还要收集正确的 Slot 分配给 request.ai_ids 以便引擎识别身份
-    # 重置 request.ai_ids 为“座位号列表”，而不是“头像ID列表”
+    # 重置 request.ai_ids 为"座位号列表"，而不是"头像ID列表"
     final_ai_slot_indices = []
 
     for i in range(total_slots):
@@ -662,7 +642,7 @@ async def start_game_implementation(request: StartGameRequest, lobby_players: Li
     print(f"--- [Game Init] Full Portrait List: {full_portrait_list}")
 
     # 5. 启动引擎
-    # 注意：这里我们将 ai_ids 参数更新为真正的“AI座位号列表”，
+    # 注意：这里我们将 ai_ids 参数更新为真正的"AI座位号列表"，
     # 这样引擎就知道哪些位置该由电脑托管了。
     
     start_game_thread(
@@ -684,12 +664,13 @@ async def start_game_implementation(request: StartGameRequest, lobby_players: Li
     )
 
     # 6. 广播跳转 (保持不变)
+    game_name = request.game
     if lobby_players:
         for idx, p in enumerate(lobby_players):
             if idx < real_human_count:
                 # 分配座位号，就是 idx 本身 (因为我们是按顺序排的)
                 assigned_id = idx
-                url = f"/avalon/participate?uid={assigned_id}"
+                url = f"/{game_name}/participate?uid={assigned_id}"
                 await _safe_send_json(p['ws'], {
                     "type": "GAME_START",
                     "url": url,
@@ -698,7 +679,7 @@ async def start_game_implementation(request: StartGameRequest, lobby_players: Li
             else:
                 await _safe_send_json(p['ws'], {
                     "type": "GAME_START",
-                    "url": "/avalon/observe",
+                    "url": f"/{game_name}/observe",
                     "player_id": -1
                 })
                 
@@ -767,19 +748,16 @@ async def get_options(game: str | None = None):
                 result["default_model"] = default_model
         return result
 
-    if game == "diplomacy":
-        yaml_path = os.environ.get("DIPLOMACY_CONFIG_YAML", "games/games/diplomacy/configs/default_config.yaml")
-        diplomacy_cfg = load_config(yaml_path)['game']
-        lang = _to_ui_lang(diplomacy_cfg['language'])
+    if game == "turtle_soup":
+        yaml_path = os.environ.get("TURTLE_SOUP_CONFIG_YAML", "games/games/turtle_soup/configs/default_config.yaml")
+        ts_cfg = load_config(yaml_path).get('game', {})
+        puzzles = ts_cfg.get('puzzles', [])
         return {
-            "powers": diplomacy_cfg['power_names'],
+            "puzzles": [p.get("title", "") for p in puzzles],
             "defaults": {
-                "mode": "observe",
-                "human_power": (diplomacy_cfg['power_names'][0] if diplomacy_cfg['power_names'] else "ENGLAND"),
-                "max_phases": diplomacy_cfg['max_phases'],
-                "map_name": diplomacy_cfg['map_name'],
-                "negotiation_rounds": diplomacy_cfg['negotiation_rounds'],
-                "language": lang,
+                "num_players": ts_cfg.get('num_players', 4),
+                "max_rounds": ts_cfg.get('max_rounds', 20),
+                "language": ts_cfg.get('language', 'zh'),
             },
         }
 
@@ -794,7 +772,7 @@ async def get_options(game: str | None = None):
             },
         }
 
-    raise HTTPException(status_code=404, detail="options only for avalon/diplomacy")
+    raise HTTPException(status_code=404, detail="options only for avalon/turtle_soup")
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8000):

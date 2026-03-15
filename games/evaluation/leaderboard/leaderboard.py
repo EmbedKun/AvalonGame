@@ -30,7 +30,7 @@ def generate_leaderboard_from_db(leaderboard_data: Dict[str, Any], arena_config:
     Args:
         leaderboard_data: Data from LeaderboardDB.get_leaderboard_data()
         arena_config: Arena configuration with models list
-        game_name: Name of the game (e.g., 'avalon', 'diplomacy')
+        game_name: Name of the game (e.g., 'avalon', 'turtle_soup')
     
     Returns:
         Formatted leaderboard string
@@ -43,13 +43,6 @@ def generate_leaderboard_from_db(leaderboard_data: Dict[str, Any], arena_config:
     if game_name == "avalon":
         role_names = ['Merlin', 'Servant', 'Assassin', 'Minion']
         game_display_name = "AVALON"
-    elif game_name == "diplomacy":
-        # For Diplomacy, extract power names from role_stats
-        all_roles = set()
-        for model_stat in model_stats.values():
-            all_roles.update(model_stat.get('role_stats', {}).keys())
-        role_names = sorted(list(all_roles)) if all_roles else []
-        game_display_name = "DIPLOMACY"
     else:
         # Generic: extract from role_stats
         all_roles = set()

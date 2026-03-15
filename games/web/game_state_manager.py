@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Game state manager for unified web (avalon + diplomacy)."""
+"""Game state manager for unified web (avalon + turtle_soup)."""
 import asyncio
 import queue
 from typing import Dict, Optional, Any
@@ -178,22 +178,7 @@ class GameStateManager:
         if self.should_stop and kwargs.get("status") not in ["stopped", "finished"]:
             return
         self.game_state.update(kwargs)
-        if self.game_state.get("game") == "diplomacy":
-            snapshot_keys = ["phase", "round", "status", "map_svg", "obs_log_entry", "logs", "mission_id", "round_id", "leader"]
-            snapshot = {k: self.game_state.get(k) for k in snapshot_keys}
-            snapshot["timestamp"] = datetime.now().isoformat()
-            snapshot["kind"] = "state"
-            self.history.append(snapshot)
-    
-    def save_history_snapshot(self, kind: str = "state"):
-        if self.game_state.get("game") != "diplomacy":
-            return
-        snapshot_keys = ["phase", "round", "status", "map_svg", "obs_log_entry", "logs", "mission_id", "round_id", "leader"]
-        snapshot = {k: self.game_state.get(k) for k in snapshot_keys}
-        snapshot["timestamp"] = datetime.now().isoformat()
-        snapshot["kind"] = kind
-        self.history.append(snapshot)
-    
+
     def get_game_state(self) -> Dict[str, Any]:
         """Get current game state."""
         return self.game_state.copy()

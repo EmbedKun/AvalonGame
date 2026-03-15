@@ -111,7 +111,7 @@ def run_evaluation(
     """Run evaluation for a game.
     
     Args:
-        game_name: Name of the game (e.g., 'avalon', 'diplomacy')
+        game_name: Name of the game (e.g., 'avalon', 'turtle_soup')
         config_dict: Base configuration dictionary
         num_games: Number of games to run
         max_workers: Maximum number of parallel workers

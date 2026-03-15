@@ -24,7 +24,7 @@ def create_arena_evaluator(game_name: str, leaderboard_db: LeaderboardDB):
     """Create evaluator function for arena (reuses pattern from run_eval.py).
     
     Args:
-        game_name: Name of the game (e.g., 'avalon', 'diplomacy')
+        game_name: Name of the game (e.g., 'avalon', 'turtle_soup')
         leaderboard_db: Leaderboard database to get game counts for fairness
     
     Returns:
@@ -144,18 +144,10 @@ Examples:
       --config games/games/avalon/configs/arena_config.yaml \\
       --num-games 200 \\
       --max-workers 10
-  
-  # Run Diplomacy arena games
-  python games/evaluation/leaderboard/run_arena.py \\
-      --game diplomacy \\
-      --config games/games/diplomacy/configs/arena_config.yaml \\
-      --num-games 100 \\
-      --max-workers 10
         """
     )
-    
-    # Supported games (avalon is always available, diplomacy is lazy-loaded)
-    SUPPORTED_GAMES = ["avalon", "diplomacy"]
+
+    SUPPORTED_GAMES = ["avalon"]
     
     parser.add_argument(
         "--game",

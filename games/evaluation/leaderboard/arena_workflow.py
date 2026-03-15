@@ -167,55 +167,9 @@ def _register_avalon_workflow():
     return ArenaAvalonWorkflow
 
 
-def _register_diplomacy_workflow():
-    """Lazy-load Diplomacy arena workflow."""
-    from games.games.diplomacy.workflows.eval_workflow import EvalDiplomacyWorkflow
-    
-    @register_arena_workflow("diplomacy")
-    class ArenaDiplomacyWorkflow(BaseArenaWorkflow, EvalDiplomacyWorkflow):
-        """Arena workflow for Diplomacy with random model assignment."""
-        
-        def __init__(self, config_dict: Dict[str, Any]):
-            self._initialize_arena(config_dict)
-            super().__init__(config_dict)
-        
-        def _get_role_names(self, config_dict: Dict[str, Any]) -> List[str]:
-            return config_dict.get('game', {}).get('power_names', 
-                ["AUSTRIA", "ENGLAND", "FRANCE", "GERMANY", "ITALY", "RUSSIA", "TURKEY"])
-        
-        def _create_model_assignment(self, role_names: List[str], assigned_models: List[str]) -> Dict[str, str]:
-            return dict(zip(role_names, assigned_models))
-        
-        def _get_model_config(self, power_name: str) -> Dict[str, Any]:
-            """Override to get model from arena assignment."""
-            model_assignment = self.config_dict.get('_arena_model_assignment', {})
-            if isinstance(model_assignment, dict) and power_name in model_assignment:
-                model_name = model_assignment[power_name]
-                # Get base model config from default_role.model
-                default_role = self.config_dict.get('default_role', {})
-                if not isinstance(default_role, dict):
-                    default_role = {}
-                base_model_config = default_role.get('model', {})
-                # Deep copy and update with arena-assigned model name
-                config = copy.deepcopy(base_model_config)
-                config['model_name'] = model_name
-                return config
-            # Fallback to parent method
-            return super()._get_model_config(power_name)
-        
-        def _add_models_to_results(self, result: Dict[str, Any], model_assignment: Dict[str, str]):
-            if 'roles' in result:
-                for role_info in result['roles']:
-                    if (power_name := role_info.get('role_name')) in model_assignment:
-                        role_info['model_name'] = model_assignment[power_name]
-    
-    return ArenaDiplomacyWorkflow
-
-
 # Registry of lazy-load functions
 _LAZY_LOADERS = {
     "avalon": _register_avalon_workflow,
-    "diplomacy": _register_diplomacy_workflow,
 }
 
 

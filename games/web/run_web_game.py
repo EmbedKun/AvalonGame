@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Unified web game launcher for Avalon + Diplomacy."""
+"""Unified web game launcher for Avalon + Turtle Soup."""
 import argparse
 import asyncio
 import os
@@ -29,12 +29,14 @@ from games.agents.thinking_react_agent import ThinkingReActAgent
 from games.utils import load_agent_class
 from games.games.avalon.game import avalon_game
 from games.games.avalon.engine import AvalonBasicConfig
-from games.games.avalon.workflows.eval_workflow import RoleManager
+from games.games.avalon.engine import RoleManager
 from games.games.avalon.engine import AvalonGameEnvironment
 
+# Turtle Soup imports
+from games.games.turtle_soup.engine import TurtleSoupConfig
+from games.games.turtle_soup.game import turtle_soup_game
 
-from games.games.diplomacy.engine import DiplomacyConfig
-from games.games.diplomacy.game import diplomacy_game
+
 from games.utils import (
     load_config,
     create_agent_from_config,
@@ -415,74 +417,118 @@ async def run_avalon(
     await state_manager.broadcast_message(result_msg)
 
 
-async def run_diplomacy(
+async def run_turtle_soup(
     state_manager: GameStateManager,
-    config: DiplomacyConfig,
+    num_players: int,
+    language: str,
+    user_agent_id: int,
     mode: str,
     selected_portrait_ids: list[int] | None = None,
     agent_configs: Dict[int, Dict[str, str]] | None = None,
-    ai_ids: List[int] | None = None, 
+    ai_ids: List[int] | None = None,
+    max_rounds: int = 20,
 ):
-    """Run Diplomacy game."""
-    agentscope.init()
+    """Run Turtle Soup game."""
+    yaml_path = os.environ.get(
+        "TURTLE_SOUP_CONFIG_YAML",
+        "games/games/turtle_soup/configs/default_config.yaml",
+    )
+    config = TurtleSoupConfig.from_yaml(yaml_path)
+    config.num_players = num_players
+    config.max_rounds = max_rounds
+    config.language = language
 
-    yaml_path = os.environ.get("DIPLOMACY_CONFIG_YAML", "games/games/diplomacy/configs/default_config.yaml")
+    # Soup master should be an AI player, not a human player
+    # Find the first AI slot to assign as soup master
+    if ai_ids:
+        config.soup_master_id = ai_ids[0]
+    elif mode == "observe":
+        config.soup_master_id = 0  # All AI in observe mode
+    else:
+        # Fallback: pick any slot that isn't the human
+        for slot in range(num_players):
+            if slot != user_agent_id:
+                config.soup_master_id = slot
+                break
+
     task_cfg = load_config(yaml_path)
+
+    if not selected_portrait_ids:
+        selected_portrait_ids = list(range(1, num_players + 1))
 
     agents = []
     observe_agent = None
     if mode == "observe":
         observe_agent = ObserveAgent(name="Observer", state_manager=state_manager)
 
-    for power_idx, power in enumerate(config.power_names):
-        if mode == "participate" and config.human_power and power == config.human_power:
-            agent = WebUserAgent(name=power, state_manager=state_manager, player_id=power_idx) 
-            state_manager.user_agent_id = agent.id
-        else:
-            portrait_id = None
-            frontend_cfg = None
-            if selected_portrait_ids and power_idx < len(selected_portrait_ids):
-                portrait_id = selected_portrait_ids[power_idx]
-                if portrait_id is not None and portrait_id != -1:
-                    if agent_configs:
-                        if portrait_id in agent_configs:
-                            frontend_cfg = agent_configs[portrait_id]
-                        elif str(portrait_id) in agent_configs:
-                            frontend_cfg = agent_configs[str(portrait_id)]
+    ai_portrait_index = 0
 
+    for i in range(num_players):
+        # Determine Human vs AI
+        is_human = False
+        if ai_ids is not None:
+            if i not in ai_ids:
+                is_human = True
+        else:
+            if mode == "participate" and i == user_agent_id:
+                is_human = True
+
+        if is_human:
+            agent = WebUserAgent(name=f"Player{i}", state_manager=state_manager, player_id=i)
+        else:
+            # AI Logic
+            if mode == "participate":
+                if ai_portrait_index < len(selected_portrait_ids):
+                    portrait_id = selected_portrait_ids[ai_portrait_index]
+                    ai_portrait_index += 1
+                else:
+                    portrait_id = i + 1
+            else:
+                portrait_id = selected_portrait_ids[i] if i < len(selected_portrait_ids) else (i + 1)
+
+            # Get Config
+            frontend_cfg = None
+            if agent_configs:
+                if portrait_id in agent_configs:
+                    frontend_cfg = agent_configs[portrait_id]
+                elif str(portrait_id) in agent_configs:
+                    frontend_cfg = agent_configs[str(portrait_id)]
+
+            # Use config.soup_master_id to determine role
+            role_name = "soup_master" if i == config.soup_master_id else "guesser"
             role_config = _get_role_config(
                 task_cfg,
-                role_identifiers=[power],
+                role_identifiers=[role_name],
                 frontend_cfg=frontend_cfg,
             )
-            
+
             model_config = role_config.get('model', {})
             agent_config = role_config.get('agent', {})
-            
+
             model = create_model_from_config(model_config)
             agent = create_agent_from_config(
                 agent_config=agent_config,
                 model=model,
-                name=power,
+                name=f"Player{i}",
                 actor_rollout_ref=None,
             )
-            agent.power_name = power
-            agent.set_console_output_enabled(True)
+
         agents.append(agent)
-        
-    state_manager.set_mode(mode, config.human_power if mode == "participate" else None, game="diplomacy")
-    state_manager.update_game_state(status="running", human_power=config.human_power if mode == "participate" else None)
+
+    state_manager.set_mode(mode, str(user_agent_id) if mode == "participate" else None, game="turtle_soup")
+    state_manager.update_game_state(status="running")
     await state_manager.broadcast_message(state_manager.format_game_state())
 
     log_dir = os.getenv("LOG_DIR", "logs")
     os.makedirs(log_dir, exist_ok=True)
 
-    result = await diplomacy_game(
+    result = await turtle_soup_game(
         agents=agents,
         config=config,
-        state_manager=state_manager,
         log_dir=log_dir,
+        language=language,
         observe_agent=observe_agent,
+        state_manager=state_manager,
     )
 
     if result is None or state_manager.should_stop:
@@ -490,9 +536,14 @@ async def run_diplomacy(
         await state_manager.broadcast_message(state_manager.format_game_state())
         return
 
+    solved = result.get("solved", False) if isinstance(result, dict) else False
     state_manager.update_game_state(status="finished", result=result)
     await state_manager.broadcast_message(state_manager.format_game_state())
-    end_msg = state_manager.format_message(sender="System", content=f"Diplomacy finished: {result}", role="assistant")
+    end_msg = state_manager.format_message(
+        sender="System",
+        content=f"Turtle Soup finished! {'Puzzle solved!' if solved else 'Puzzle not solved.'}",
+        role="assistant",
+    )
     await state_manager.broadcast_message(end_msg)
 
 
@@ -555,25 +606,21 @@ def start_game_thread(
                         t.cancel()
                     if pending:
                         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-            else:
-                cfg = DiplomacyConfig.default()
-                cfg.max_phases = max_phases
-                cfg.negotiation_rounds = negotiation_rounds
-                cfg.language = language
-                cfg.human_power = human_power
-                if power_names:
-                    cfg.power_names = list(power_names)
-                
-                task = loop.create_task(run_diplomacy(
+            elif game == "turtle_soup":
+                portrait_ids = selected_portrait_ids if selected_portrait_ids else list(range(1, num_players + 1))
+                task = loop.create_task(run_turtle_soup(
                     state_manager=state_manager,
-                    config=cfg,
+                    num_players=num_players,
+                    language=language,
+                    user_agent_id=user_agent_id,
                     mode=mode,
-                    selected_portrait_ids=selected_portrait_ids,
+                    selected_portrait_ids=portrait_ids,
                     agent_configs=agent_configs,
                     ai_ids=ai_ids,
+                    max_rounds=max_phases,
                 ))
                 state_manager._game_task = task
-                
+
                 try:
                     loop.run_until_complete(task)
                 except asyncio.CancelledError:
@@ -600,8 +647,8 @@ def start_game_thread(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run web game (avalon|diplomacy)")
-    parser.add_argument("--game", type=str, default="avalon", choices=["avalon", "diplomacy"])
+    parser = argparse.ArgumentParser(description="Run web game (avalon|turtle_soup)")
+    parser.add_argument("--game", type=str, default="avalon", choices=["avalon", "turtle_soup"])
     parser.add_argument("--mode", type=str, default="observe", choices=["observe", "participate"])
     parser.add_argument("--user-agent-id", type=int, default=0)
     parser.add_argument("--num-players", type=int, default=5)

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turtle Soup - Observe Mode</title>
+    <link rel="stylesheet" href="/static/turtle_soup/css/style.css?v=20260315">
+    <script>
+        window.__EARLY_INIT__ = { hasGameConfig: false, isGameRunning: false, config: null, portraits: null };
+        (function() {
+            try {
+                var gameConfigStr = sessionStorage.getItem('gameConfig');
+                var portraitsStr = sessionStorage.getItem('selectedPortraits');
+                var gameRunning = sessionStorage.getItem('gameRunning') === 'true';
+
+                if (gameConfigStr) {
+                    window.__EARLY_INIT__.hasGameConfig = true;
+                    window.__EARLY_INIT__.config = JSON.parse(gameConfigStr);
+                    document.documentElement.classList.add('auto-start');
+                } else if (gameRunning) {
+                    window.__EARLY_INIT__.isGameRunning = true;
+                    document.documentElement.classList.add('auto-start');
+                } else {
+                    document.documentElement.classList.add('manual-start');
+                }
+
+                if (portraitsStr) {
+                    window.__EARLY_INIT__.portraits = JSON.parse(portraitsStr);
+                }
+            } catch (e) {
+                document.documentElement.classList.add('manual-start');
+            }
+        })();
+    </script>
+    <style>
+        html.auto-start #game-setup { display: none !important; }
+        html.auto-start #messages-container { display: flex !important; }
+        html.manual-start #game-setup { display: block !important; }
+        html.manual-start #messages-container { display: none !important; }
+        .observer-hidden-input { display: none !important; }
+        .waiting-text { color: var(--accent); text-align: center; margin-bottom: 20px; font-size: 10px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div id="connection-status" class="connection-status connecting">Connecting...</div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-controls">
+                <div class="header-label">Game: Turtle Soup</div>
+                <div class="header-btn">Mode: Observer</div>
+            </div>
+            <div id="status-bar">
+                <span id="round-display">Round: -</span>
+                <span id="status-display">Status: Connecting...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="map-container" id="game-visual-container">
+                <div id="game-setup" class="game-setup" style="display: none;">
+                    <h3>Observer View</h3>
+                    <div class="setup-form">
+                        <div class="waiting-text">
+                            Waiting for the Host to start the game...<br>
+                            Click below if visuals don't load automatically.
+                        </div>
+                        <button id="start-game-btn" class="start-button">Enter View</button>
+                    </div>
+                </div>
+
+                <div class="table-scene">
+                    <div class="pixel-table"></div>
+                    <div class="table-players" id="table-players"></div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="panel logs-panel">
+                    <h3>Chat</h3>
+                    <div id="messages-container">
+                        <div style="text-align: center; color: var(--muted); padding: 20px; font-size: 9px;">
+                            Connecting to game feed...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/turtle_soup/js/websocket.js"></script>
+    <script src="/static/turtle_soup/js/observe.js"></script>
+</body>
+</html>

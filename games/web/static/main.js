@@ -348,12 +348,12 @@ const state = {
   selectedIdsOrder: [],
   selectedGame: "",
   selectedMode: "observe",
-  diplomacyOptions: null,
+  turtleSoupOptions: null,
   avalonOptions: null,
-  diplomacyPowerOrder: null,
+  turtleSoupPowerOrder: null,
   avalonRoleOrder: null,
   avalonPreviewRoles: null,
-  diplomacyPreviewPowers: null,
+  turtleSoupPreviewPowers: null,
   lobbyPlayers: [],
 };
 
@@ -494,9 +494,9 @@ function checkRoleConflict(seatId, newRole, game) {
     } else {
       expectedList = ["Merlin", "Servant", "Servant", "Minion", "Assassin"];
     }
-  } else if (game === "diplomacy") {
-    if (state.diplomacyOptions && Array.isArray(state.diplomacyOptions.powers)) {
-      expectedList = state.diplomacyOptions.powers.slice();
+  } else if (game === "turtle_soup") {
+    if (state.turtleSoupOptions && Array.isArray(state.turtleSoupOptions.powers)) {
+      expectedList = state.turtleSoupOptions.powers.slice();
     }
   }
 
@@ -586,7 +586,7 @@ function shouldShowPreview() {
 function setRandomButtonsEnabled() {
   const disabled = state.selectedMode === "participate";
   const aBtn = document.getElementById("avalon-reroll-roles");
-  const dBtn = document.getElementById("diplomacy-shuffle-powers");
+  const dBtn = document.getElementById("turtle-soup-shuffle-powers");
   const isHost = LobbyClient.connected && LobbyClient.isHost;
 
   if (aBtn) aBtn.disabled = disabled && !isHost;
@@ -597,7 +597,7 @@ function setRandomButtonsEnabled() {
 //   const game = state.selectedGame;
 //   if (!game) return 0;
 //   if (game === "avalon") return 5;
-//   if (game === "diplomacy") return 7;
+//   if (game === "turtle_soup") return 7;
 //   return 0;
 // }
 function requiredCountForPreview() {
@@ -610,7 +610,10 @@ function requiredCountForPreview() {
     return numPlayersEl ? parseInt(numPlayersEl.value, 10) : 5;
   }
 
-  if (game === "diplomacy") return 7; // Diplomacy 暂时还是固定 7 人
+  if (game === "turtle_soup") {
+    const numPlayersEl = document.getElementById("turtle-soup-num-players");
+    return numPlayersEl ? parseInt(numPlayersEl.value, 10) : 4;
+  }
   return 0;
 }
 
@@ -845,6 +848,9 @@ function updateCounter() {
     const numPlayersEl = document.getElementById("avalon-num-players");
     const numPlayers = numPlayersEl ? parseInt(numPlayersEl.value, 10) : 5;
     required = numPlayers;
+  } else if (game === 'turtle_soup') {
+    const numPlayersEl = document.getElementById("turtle-soup-num-players");
+    required = numPlayersEl ? parseInt(numPlayersEl.value, 10) : 4;
   }
 
   DOM.counterEl.textContent = `${total}/${required}`;
@@ -1036,7 +1042,7 @@ function setGame(game) {
 
   if (!state.selectedGame) {
     if (DOM.avalonFields) DOM.avalonFields.classList.remove("show");
-    if (DOM.diplomacyFields) DOM.diplomacyFields.classList.remove("show");
+    if (DOM.turtleSoupFields) DOM.turtleSoupFields.classList.remove("show");
     updateCounter();
     updateTableRoleStats();
     const tablePreview = document.getElementById("table-preview");
@@ -1048,8 +1054,8 @@ function setGame(game) {
 
   addStatusMessage(`Selected game: ${state.selectedGame}`);
 
-  if (state.selectedGame === "diplomacy") {
-    fetchDiplomacyOptions().then(() => updateCounter());
+  if (state.selectedGame === "turtle_soup") {
+    updateCounter();
   } else if (state.selectedGame === "avalon") {
     fetchAvalonOptions().then(() => updateCounter());
   }
@@ -1099,8 +1105,8 @@ function updateConfigVisibility() {
   if (DOM.avalonFields) {
     DOM.avalonFields.classList.toggle("show", game === "avalon" && !!mode);
   }
-  if (DOM.diplomacyFields) {
-    DOM.diplomacyFields.classList.toggle("show", game === "diplomacy" && !!mode);
+  if (DOM.turtleSoupFields) {
+    DOM.turtleSoupFields.classList.toggle("show", game === "turtle_soup" && !!mode);
   }
 
   if (DOM.connectionUI) {
@@ -1114,11 +1120,11 @@ function updateConfigVisibility() {
   document.querySelectorAll(".avalon-participate-only").forEach(el => {
     el.style.display = (game === "avalon" && mode === "participate") ? "flex" : "none";
   });
-  document.querySelectorAll(".diplomacy-participate-only").forEach(el => {
-    el.style.display = (game === "diplomacy" && mode === "participate") ? "flex" : "none";
+  document.querySelectorAll(".turtle-soup-participate-only").forEach(el => {
+    el.style.display = (game === "turtle_soup" && mode === "participate") ? "flex" : "none";
   });
   if (DOM.powerModelsSection) {
-    DOM.powerModelsSection.style.display = (game === "diplomacy" && state.diplomacyOptions) ? "block" : "none";
+    DOM.powerModelsSection.style.display = (game === "turtle_soup" && state.turtleSoupOptions) ? "block" : "none";
   }
 }
 
@@ -1153,8 +1159,14 @@ function shuffleInPlace(arr) {
 //     };
 // }
 function buildMultiplayerPayload(game) {
-  const numPlayersEl = document.getElementById("avalon-num-players");
-  const languageEl = document.getElementById("avalon-language");
+  let numPlayersEl, languageEl;
+  if (game === "turtle_soup") {
+    numPlayersEl = document.getElementById("turtle-soup-num-players");
+    languageEl = document.getElementById("turtle-soup-language");
+  } else {
+    numPlayersEl = document.getElementById("avalon-num-players");
+    languageEl = document.getElementById("avalon-language");
+  }
 
   // 1. 获取 AI 的 ID 列表
   const aiIds = state.selectedIdsOrder.filter(id => state.selectedIds.has(id));
@@ -1171,19 +1183,26 @@ function buildMultiplayerPayload(game) {
   // 这里的 myAvatarId 就是你在大厅选的 "human" 或 "h1" 等
   const fullPortraitList = [myAvatarId, ...aiIds];
 
-  console.log("正在发送多人游戏配置, 头像列表:", fullPortraitList); // 方便调试
+  const defaultPlayers = game === "turtle_soup" ? 4 : 5;
+  const defaultLang = game === "turtle_soup" ? "zh" : "en";
+
+  // Turtle soup: also send max_rounds as max_phases
+  let extraConfig = {};
+  if (game === "turtle_soup") {
+    const maxRoundsEl = document.getElementById("turtle-soup-max-rounds");
+    extraConfig.max_phases = maxRoundsEl ? parseInt(maxRoundsEl.value, 10) : 20;
+  }
 
   return {
     type: "START_GAME",
     game_config: {
       game: game,
-      num_players: numPlayersEl ? parseInt(numPlayersEl.value, 10) : 5,
-      language: languageEl ? languageEl.value : "en",
+      num_players: numPlayersEl ? parseInt(numPlayersEl.value, 10) : defaultPlayers,
+      language: languageEl ? languageEl.value : defaultLang,
       ai_ids: aiIds,
       agent_configs: aiConfigPayload,
-
-      // [必须加上这一行] 把完整的头像列表传给 Server
-      selected_portrait_ids: fullPortraitList
+      selected_portrait_ids: fullPortraitList,
+      ...extraConfig
     }
   };
 }
@@ -1288,6 +1307,14 @@ function initEventListeners() {
     });
   }
 
+  const turtleSoupNumPlayers = document.getElementById("turtle-soup-num-players");
+  if (turtleSoupNumPlayers) {
+    turtleSoupNumPlayers.addEventListener("change", function () {
+      updateCounter();
+      updateTableHeadPreview();
+    });
+  }
+
   if (DOM.avalonRerollRolesBtn) {
     DOM.avalonRerollRolesBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -1351,11 +1378,10 @@ function initEventListeners() {
       const game = state.selectedGame;
       const mode = state.selectedMode;
 
-      if (game === 'avalon' && mode === 'participate' && LobbyClient.connected) {
+      if (mode === 'participate' && LobbyClient.connected) {
         if (!LobbyClient.isHost) return;
 
-        const numPlayersEl = document.getElementById("avalon-num-players");
-        const required = numPlayersEl ? parseInt(numPlayersEl.value, 10) : 5;
+        const required = requiredCountForPreview(game);
         const currentTotal = state.lobbyPlayers.length + state.selectedIds.size;
 
         if (currentTotal !== required) {
@@ -1370,8 +1396,8 @@ function initEventListeners() {
         return;
       }
 
-      if (game === "avalon" && mode === "participate") {
-        alert("Please Connect to Lobby to play Avalon Multiplayer.");
+      if (mode === "participate") {
+        alert("Please Connect to Lobby to play Multiplayer.");
         return;
       }
 
@@ -1400,7 +1426,7 @@ function initDOM() {
     counterEl: document.getElementById("counter"),
     modeLabelEl: document.getElementById("mode-label"),
     avalonFields: document.getElementById("avalon-fields"),
-    diplomacyFields: document.getElementById("diplomacy-fields"),
+    turtleSoupFields: document.getElementById("turtle-soup-fields"),
     startBtn: document.getElementById("start-btn"),
     powerModelsSection: document.getElementById("power-models-section"),
     powerModelsGrid: document.getElementById("power-models-grid"),
@@ -1409,7 +1435,7 @@ function initDOM() {
     selectionHintPill: document.getElementById("selection-hint-pill"),
     selectionHint: document.getElementById("selection-hint"),
     avalonRerollRolesBtn: document.getElementById("avalon-reroll-roles"),
-    diplomacyShufflePowersBtn: document.getElementById("diplomacy-shuffle-powers"),
+    turtleSoupShufflePowersBtn: document.getElementById("turtle-soup-shuffle-powers"),
     randomSelectBtn: document.getElementById("random-select-btn"),
     connectionUI: document.getElementById("connection-ui"),
     connectionStatus: document.getElementById("connection-status"),

@@ -1,4 +1,5 @@
 from typing import ClassVar, List, Optional, Dict, Union
+from collections import defaultdict
 import numpy as np
 from pydantic import BaseModel
 
@@ -657,4 +658,27 @@ class AvalonScoring():
         scores what percentage of time the proposed team was approved when the player proposed it
         '''
         return np.mean(vote_outcome)
-    
+
+
+class RoleManager:
+    """Manages role indexing and identification."""
+
+    def __init__(self, roles: List[tuple]):
+        self.roles = roles
+        self.indexed_roles = self._build_indexed_roles(roles)
+
+    @staticmethod
+    def _build_indexed_roles(roles: List[tuple]) -> List[str]:
+        """Build indexed role names with counters."""
+        role_counters = defaultdict(int)
+        indexed_roles = []
+        for _, role_name, _ in roles:
+            indexed_roles.append(f"{role_name}_{role_counters[role_name]}")
+            role_counters[role_name] += 1
+        return indexed_roles
+
+    def get_indexed_role(self, index: int) -> str:
+        return self.indexed_roles[index]
+
+    def get_role_name(self, index: int) -> str:
+        return self.roles[index][1]
