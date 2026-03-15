@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏰 Avalon: Web Edition (AI-Enhanced)
+# 🏰 AgentEvolver Game Arena (AI-Enhanced)
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -10,17 +10,17 @@
 
 <br/>
 
-**A lightweight, robust web-based implementation of The Resistance: Avalon.**
-**Supports Human vs. AI hybrid gameplay and seamless remote multiplayer.**
+**A lightweight, robust web-based multi-game platform powered by LLM agents.**
+**Currently featuring The Resistance: Avalon and Turtle Soup (Lateral Thinking Puzzles).**
 
-[Live Demo](#-live-demo) • [Key Features](#-key-features) • [Quick Start](#-quick-start)
+[Live Demo](#-live-demo) • [Games](#-games) • [Key Features](#-key-features) • [Quick Start](#-quick-start)
 
 </div>
 
 ---
 
 **No downloads. No registration. Just open the link and play.**
-The backend features a battle-tested state machine, allowing you to tear apart friendships with real humans or practice your deception skills against LLM-based AI agents.
+Select a game from the lobby, invite your friends, and jump right in — whether you want to tear apart friendships in Avalon or unravel mysterious stories in Turtle Soup, all with LLM-based AI agents at the table.
 
 ## 📺 Live Demo
 
@@ -36,23 +36,45 @@ Experience a seamless UI optimized for both Desktop and Mobile.
 
 ---
 
+## 🎮 Games
+
+### 🏰 The Resistance: Avalon
+
+The classic social deduction game. Players are secretly divided into Good and Evil factions. Through team proposals, public votes, and secret mission actions, the forces of Good must complete three quests — while the minions of Evil sabotage from within.
+
+- **5–10 Players** (Human, AI, or any mix)
+- **Roles**: Merlin, Percival, Loyal Servant, Morgana, Assassin, Minion, Mordred, Oberon
+- **Post-Game AI Analysis**: After the game ends, AI reads the full game log to deliver a brutal "Replay Analysis" — critiquing your acting, exposing logical fallacies, and roasting whoever blew it.
+
+### 🐢 Turtle Soup (Lateral Thinking Puzzles)
+
+A mystery-solving party game. The **Soup Master** (AI or Human) presents a bizarre, seemingly impossible story fragment (the "surface"). The other players ask **Yes / No / Irrelevant** questions to deduce the hidden truth (the "truth") behind the story.
+
+- **2–10 Players** (1 Soup Master + Guessers)
+- **Bilingual**: Full support for Chinese and English
+- **10 Built-in Puzzles** with customizable puzzle library via YAML config
+- **Up to 20 Rounds** of Q&A per game — race to crack the mystery before time runs out
+
+---
+
 ## ✨ Key Features
 
 ### 🛡️ Production-Grade Robustness
-- **Connection Resilience**: The system is deeply optimized for unstable networks. **Accidental refreshes**, **browser crashes**, or **temporary disconnections** will *never* cause the game to crash or lose state.
+- **Connection Resilience**: Deeply optimized for unstable networks. **Accidental refreshes**, **browser crashes**, or **temporary disconnections** will *never* cause the game to crash or lose state.
 - **State Rehydration**: Players automatically reconnect to their exact progress upon rejoining.
-- **Battle-Tested**: The backend state machine has undergone rigorous stress testing. It remains stable under high concurrency or malicious input.
+- **Battle-Tested**: The backend state machine remains stable under high concurrency and adversarial input.
 - **Hot-Reset**: Finished a game? The host can click "Play Again" for an instant restart. The backend automatically cleans up thread locks and message queues, ensuring zero memory leaks.
 
 ### 🕹️ Hybrid Multiplayer (Human + AI)
 Break free from player count restrictions.
-- **Full Human Mode**: Classic 10-player chaos.
-- **Training Mode**: 3 Humans + 2 AI agents.
+- **Full Human Mode**: Classic multiplayer chaos.
+- **Training Mode**: A few humans + AI agents to fill the rest.
 - **Custom Mode**: Mix and match any number of humans and AI.
-Play across PC, tablets, and smartphones as long as you are connected to the server.
+
+Play across PC, tablets, and smartphones — anyone connected to the server can join.
 
 ### 📱 Native-Like Mobile Experience
-Specific viewports and touch optimizations for **iOS** and **Android**. It doesn't just "work" on mobile; it feels like a native app.
+Tailored viewports and touch optimizations for **iOS** and **Android**. It doesn't just "work" on mobile; it feels like a native app.
 
 <div align="center">
 
@@ -62,8 +84,8 @@ Specific viewports and touch optimizations for **iOS** and **Android**. It doesn
 
 </div>
 
-### 🤖 Post-Game AI Analysis
-The game doesn't end when the mission fails. The AI reads the entire game log to perform a **"Replay Analysis"**. They will critique your acting skills, point out logical fallacies, and throw shade at players who messed up.
+### 🤖 Post-Game AI Analysis (Avalon)
+The game doesn't end when the mission fails. The AI reads the entire game log to perform a **"Replay Analysis"** — critiquing your acting skills, pointing out logical fallacies, and throwing shade at players who messed up.
 
 <div align="center">
   <img src="images/pc_web_game_over.png" width="700" alt="AI Analysis">
@@ -81,6 +103,11 @@ The game doesn't end when the mission fails. The AI reads the entire game log to
 - **🧠 Chain of Thought (CoT)**
   - In debug mode, you can view the `Thinking-ReAct` logs. You'll often find that even when the AI votes correctly, their reasoning might be completely hallucinated.
 
+- **🐢 Turtle Soup Strategy**
+  - Start with broad questions to establish the setting: *time, place, characters, relationships*.
+  - Pay close attention to every unusual detail in the story — it's there for a reason.
+  - If the Soup Master says "Irrelevant", switch your line of questioning immediately.
+
 ---
 
 ## 🌍 Networking & Remote Play
@@ -93,9 +120,9 @@ This project is a standard Web Service. To play with friends outside your local 
 
 ---
 
-## 📜 Rules & Configuration
+## 📜 Avalon Rules & Configuration
 
-We support the standard **5-10 Player** Avalon meta.
+We support the standard **5–10 Player** Avalon meta.
 **Roles Implemented:** Merlin, Percival, Loyal Servant, Morgana, Assassin, Minion, Mordred, Oberon.
 
 <div align="center">
@@ -125,12 +152,12 @@ We support the standard **5-10 Player** Avalon meta.
 
 ## 📂 System Architecture
 
-The project adopts a modular layered design, strictly decoupling **Environment (Env)**, **Agent**, **Evolution (Training)**, and **Interface (Web)**.
+The project adopts a modular layered design, strictly decoupling **Environment (Env)**, **Agent**, **Evolution (Training)**, and **Interface (Web)**. New games can be added as independent modules under `games/`.
 
 ```bash
 .
 ├── agentevolver/           # [Core] RL Evolution & Training Framework (PPO)
-│   ├── main_ppo.py         # 🚀 Training Entry: PPO Main Loop
+│   ├── main_ppo.py         # Training Entry: PPO Main Loop
 │   ├── trainer/            # Ray Distributed Training & LLM Server Management
 │   └── module/             # Core Components (Reward, Context, Task Manager)
 │
@@ -139,7 +166,12 @@ The project adopts a modular layered design, strictly decoupling **Environment (
 │   └── memory/             # Sliding Window Memory Module
 │
 ├── games/                  # [Environment] Game Logic Kernel
-│   ├── avalon/             # Avalon State Machine (Engine, Prompt, Utils)
+│   ├── avalon/             # Avalon: State Machine (Engine, Prompt, Utils)
+│   ├── turtle_soup/        # Turtle Soup: Lateral Thinking Puzzle Engine
+│   │   ├── engine.py       # Config & Puzzle Management
+│   │   ├── game.py         # Q&A Game Loop
+│   │   ├── prompt.py       # Bilingual Prompt Templates (zh/en)
+│   │   └── configs/        # Puzzle Library (YAML)
 │   └── diplomacy/          # Diplomacy Engine Adapter (Experimental)
 │
 ├── logs/                   # [Data Persistence] Trajectories
@@ -147,37 +179,36 @@ The project adopts a modular layered design, strictly decoupling **Environment (
 │
 ├── web/                    # [Interface] Interaction Layer
 │   ├── server.py           # FastAPI WebSocket Entry
-│   ├── game_state_manager.py # Phase Management (Vote -> Quest)
+│   ├── game_state_manager.py # Phase Management
 │   ├── web_agent.py        # Adapter: Wraps RL Agents for Web
 │   ├── web_user_input.py   # WebSocket Input Queue Handling
 │   └── static/             # Frontend Assets (Vanilla JS)
-│       ├── index.html
-│       ├── main.js         # Router
-│       └── avalon/         # Avalon Client Logic
-│           ├── js/websocket.js   # Socket Communication
-│           └── js/participate.js # Interaction Logic
+│       ├── index.html      # Game Lobby (Game Selector)
+│       ├── main.js         # Router & Lobby Logic
+│       ├── avalon/         # Avalon Client (CSS, JS, HTML)
+│       └── turtle_soup/    # Turtle Soup Client (CSS, JS, HTML)
 │
 └── evaluation/             # [Benchmark] Evaluation System
     └── leaderboard/        # Arena Workflow
 
 ```
-------
+---
 
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
 
-
-```
+```bash
 # Recommended: Conda (Python 3.11+)
-conda create -n avalon python=3.11
-conda activate avalon
+conda create -n games python=3.11
+conda activate games
 pip install -r games/requirements_game.txt
 ```
+
 ### 2. Configuration
 
-To run the AI agents, you need to configure the LLM provider (Compatible with OpenAI format).
-You can configure this via **Environment Variables** (Recommended for deployment) or by modifying the **Config File** (Easier for local dev).
+To run the AI agents, you need to configure an LLM provider (any OpenAI-compatible API).
+You can configure this via **Environment Variables** (recommended for deployment) or by modifying the **Config File** (easier for local dev).
 
 #### Option 1: Environment Variables
 The system will prioritize these settings if they exist.
@@ -194,40 +225,45 @@ $env:OPENAI_API_KEY="Your Real API Key"
 
 #### Option 2: Config File
 
-If environment variables are not set, the system reads from games/avalon/config/default_config.yaml and games/web/web_config.yaml.You must open **both these two files** and modify the llm section:
+If environment variables are not set, the system reads from the game-specific config files:
+- `games/avalon/configs/default_config.yaml`
+- `games/turtle_soup/configs/default_config.yaml`
+- `games/web/web_config.yaml`
 
-```bash
+Open the relevant files and modify the `llm` section:
+
+```yaml
   url: "Your API Endpoint"
   api_key: "Your Real API Key"
 ```
 
-### 3. Launch Game (Participate Mode)
+### 3. Launch Game
 
-```
+```bash
 # Start the Web Server (Default Port: 8000)
 python -m games.web.server
 ```
 
 - **Localhost**: Visit `http://localhost:8000`
-- **LAN Play**: Visit `http://YOUR_LOCAL_IP:8000` (Use `ipconfig` or `ifconfig` to find IP)
+- **LAN Play**: Visit `http://YOUR_LOCAL_IP:8000` (Use `ipconfig` or `ifconfig` to find your IP)
+
+Select **Avalon** or **Turtle Soup** from the game lobby and start playing!
 
 ### 4. Training Mode (Optional)
 
 If you wish to train your own reinforcement learning agents:
 
-
-```
+```bash
 python agentevolver/main_ppo.py
 ```
 
-------
+---
 
 ## 🛠 Acknowledgments
 
-The core logic of this project is built upon **AgentEvolver**:https://github.com/modelscope/AgentEvolver. Special thanks to the original authors for the foundation code, which allowed us to focus on optimizing the Avalon game strategy and the web interaction experience.
+The core logic of this project is built upon **AgentEvolver**: https://github.com/modelscope/AgentEvolver. Special thanks to the original authors for the foundation code, which allowed us to focus on game strategy optimization and the web interaction experience.
 
-**Enjoy the game! Have fun betraying your friends!**
-
+**Enjoy the games! Have fun betraying your friends — or unraveling mysteries together!**
 
 ## 📄 License & Acknowledgments
 
